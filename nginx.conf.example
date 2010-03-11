@@ -1,0 +1,109 @@
+###
+### nginx configuration for envato's wordpress + other random php websites
+###
+
+user nobody;
+worker_processes 2;
+pid /var/run/nginx.pid;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+
+  include /etc/nginx/mime.types;
+  default_type application/octet-stream;
+  log_format main '$request_uri $query_string $remote_addr - $remote_user [$time_local] '
+                  '"$request" $status $body_bytes_sent "$http_referer" '
+                  '"$http_user_agent" "$http_x_forwarded_for"';
+
+  access_log /tmp/nginx.log;
+  error_log /tmp/nginx.errors;
+
+  sendfile on;
+  tcp_nopush        on;
+
+  gzip              on;
+  gzip_http_version 1.0;
+  gzip_comp_level   2;
+  gzip_proxied      any;
+  gzip_buffers      16 8k;
+  gzip_types        text/plain text/html text/css application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+
+  server_names_hash_bucket_size 64;
+
+  server { 
+    listen 9999;
+    server_name localhost;
+    index index.php;
+    root /Users/ryan/www;
+    
+    ## permanent redirects 
+
+    ## supercache configuration
+
+    location / {
+
+      set $supercache_file '';
+      set $supercache_uri 'yes please!';
+   
+      if ($request_method = POST) {
+        set $supercache_uri '';
+      }
+   
+      if ($http_cookie ~* "comment_author_|wordpress|wp-postpass_" ) {
+        add_header CacheState CookiePass;
+        set $supercache_uri '';
+      }
+
+      # if we haven't bypassed the cache, specify our supercache file
+      if ($supercache_uri ~ ^(.+)$) {
+        set $supercache_file /wp-content/cache$request_uri.cache.html;
+      }
+   
+      # only rewrite to the supercache file if it actually exists (and break)
+      if (-f $document_root$supercache_file) {
+        #more_set_headers "CacheDebug: FileCacheHit";
+        add_header CacheResult FileCacheHit;
+        rewrite ^(.*)$ $supercache_file break;
+      }
+
+      # passthrough rewrites for wordpress pretty uris
+      if (!-e $request_filename) {
+        rewrite  ^.+?(/wp-.*)     $1          last;
+        rewrite  ^.+?(/.*.php)$  $1          last;
+        rewrite ^(.+)$ /index.php?q=$1        last;
+        break;
+      }
+
+    }
+
+    ## fastcgi backend for php
+
+    location ~ .php$ {
+      #more_set_headers "CacheDebug: PhpHit";
+      add_header CacheResult PhpHit;
+      fastcgi_pass   127.0.0.1:8888;
+      fastcgi_index  index.php;
+      fastcgi_param  SCRIPT_FILENAME    /Users/ryan/www$fastcgi_script_name;      
+      fastcgi_param  REQUEST_METHOD     $request_method;
+      fastcgi_param  CONTENT_TYPE       $content_type;
+      fastcgi_param  CONTENT_LENGTH     $content_length;
+      fastcgi_param  SCRIPT_NAME        $fastcgi_script_name;
+      fastcgi_param  QUERY_STRING       $query_string;
+      fastcgi_param  REQUEST_URI        $request_uri;
+      fastcgi_param  DOCUMENT_URI       $document_uri;
+      fastcgi_param  DOCUMENT_ROOT      $document_root;
+      fastcgi_param  SERVER_PROTOCOL    $server_protocol;
+      fastcgi_param  GATEWAY_INTERFACE  CGI/1.1;
+      fastcgi_param  SERVER_SOFTWARE    nginx/$nginx_version;
+      fastcgi_param  REMOTE_ADDR        $remote_addr;
+      fastcgi_param  REMOTE_PORT        $remote_port;
+      fastcgi_param  SERVER_ADDR        $server_addr;
+      fastcgi_param  SERVER_PORT        $server_port;
+      fastcgi_param  SERVER_NAME        $server_name;
+    }
+  }
+
+}
