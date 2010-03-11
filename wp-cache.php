@@ -619,8 +619,15 @@ function wp_cache_clean_cache($file_prefix) {
 	if(function_exists('wp_cache_phase2_clean_cache'))
 		return wp_cache_phase2_clean_cache($file_prefix);
 
-  system('rm -rf ' . $cache_path . '/*');
-  return;
+  $expr = "/^$file_prefix/";
+  if ( ($handle = opendir( $cache_path )) ) { 
+    while ( false !== ($file = readdir($handle))) {
+      if ( preg_match($expr, $file) ) {
+        unlink($cache_path . $file);
+      }
+    }
+    closedir($handle);
+  }
 }
 
 function wp_cache_clean_expired($file_prefix) {

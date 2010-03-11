@@ -159,9 +159,11 @@ function wp_cache_ob_callback($buffer) {
 		}
 		$new_cache = true;
 		fclose($fr);
-    preg_match('/(.*)\/([^\/]+)$/', $_SERVER['REQUEST_URI'], $matches);
+    // symlink for request rewriting w/ get variables
+    preg_match('/(.*)\/([^\/]+)?$/', $_SERVER['REQUEST_URI'], $matches);
     system('mkdir -p ' . $cache_path . $matches[1]);
-    system('ln -s ' . $cache_path . $cache_filename . ' ' . $cache_path . $matches[1] . $matches[2] . '.cache');
+    system('rm ' . $cache_path . $matches[1] . '/' . $matches[2] . '.cache.html');
+    system('ln -s ' . $cache_path . $cache_filename . ' ' . $cache_path . $matches[1] . '/' . $matches[2] . '.cache.html');
 	}
 	wp_cache_writers_exit();
 	return $buffer;
@@ -170,7 +172,17 @@ function wp_cache_ob_callback($buffer) {
 function wp_cache_phase2_clean_cache($file_prefix) {
 	global $cache_path;
 
-  system('rm -rf ' . $cache_path . '/*');
+  wp_cache_writers_entry();
+
+  if ( ($handle = opendir( $cache_path )) ) { 
+    while ( false !== ($file = readdir($handle))) {
+      if ( preg_match("/^$file_prefix/", $file) ) {
+        unlink($cache_path . $file);
+      }
+    }
+    closedir($handle);
+  }
+
 	wp_cache_writers_exit();
 }
 
