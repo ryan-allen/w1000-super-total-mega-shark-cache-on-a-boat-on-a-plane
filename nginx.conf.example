@@ -45,28 +45,28 @@ http {
 
     location / {
 
-      set $supercache_file '';
-      set $supercache_uri 'yes please!';
+      set $cached_file '';
+      set $return_cached_file 'true';
    
       if ($request_method = POST) {
-        set $supercache_uri '';
+        set $return_cached_file '';
       }
    
       if ($http_cookie ~* "comment_author_|wordpress|wp-postpass_" ) {
         add_header CacheState CookiePass;
-        set $supercache_uri '';
+        set $return_cached_file '';
       }
 
       # if we haven't bypassed the cache, specify our supercache file
-      if ($supercache_uri ~ ^(.+)$) {
-        set $supercache_file /wp-content/cache$request_uri.cache.html;
+      if ($return_cached_file ~ ^(.+)$) {
+        set $cached_file /wp-content/cache$request_uri.cache.html;
       }
    
       # only rewrite to the supercache file if it actually exists (and break)
-      if (-f $document_root$supercache_file) {
+      if (-f $document_root$cached_file) {
         #more_set_headers "CacheDebug: FileCacheHit";
         add_header CacheResult FileCacheHit;
-        rewrite ^(.*)$ $supercache_file break;
+        rewrite ^(.*)$ $cached_file break;
       }
 
       # passthrough rewrites for wordpress pretty uris
