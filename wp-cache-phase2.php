@@ -36,6 +36,13 @@ function wp_cache_phase2() {
 			wp_cache_is_rejected($_SERVER["REQUEST_URI"]))
 		return;
 	if (wp_cache_user_agent_is_rejected()) return;
+  if (is_user_logged_in()) return; // don't cache pages of logged in users, that is lame.
+  foreach($_COOKIE as $key => $val) {
+    if (strstr($key, 'comment_author')) {
+      return; // don't perform caching of pages that commenters see, that is lame
+    }
+  }
+
 	$wp_cache_meta_object = new CacheMeta;
 	ob_start('wp_cache_ob_callback'); 
 	register_shutdown_function('wp_cache_shutdown_callback');
