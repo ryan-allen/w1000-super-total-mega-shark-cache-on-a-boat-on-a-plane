@@ -168,9 +168,9 @@ function wp_cache_ob_callback($buffer) {
 		fclose($fr);
     // symlink for request rewriting w/ get variables
     preg_match('/(.*)\/([^\/]+)?$/', $_SERVER['REQUEST_URI'], $matches);
-    system('mkdir -p ' . $cache_path . $matches[1]);
-    system('rm ' . $cache_path . $matches[1] . '/' . $matches[2] . '.cache.html');
-    system('ln -s ' . $cache_path . $cache_filename . ' ' . $cache_path . $matches[1] . '/' . $matches[2] . '.cache.html');
+    system('mkdir -p ' . escapeshellarg($cache_path) . escapeshellarg($matches[1]));
+    system('rm ' . escapeshellarg($cache_path) . escapeshellarg($matches[1]) . '/' . escapeshellarg($matches[2]) . '.cache.html');
+    system('ln -s ' . escapeshellarg($cache_path) . escapeshellarg($cache_filename) . ' ' . escapeshellarg($cache_path) . escapeshellarg($matches[1]) . '/' . escapeshellarg($matches[2]) . '.cache.html');
 	}
 	wp_cache_writers_exit();
 	return $buffer;
